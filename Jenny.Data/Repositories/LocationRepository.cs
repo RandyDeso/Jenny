@@ -26,7 +26,9 @@ public sealed class LocationRepository(MockTravelDataStore store) : ILocationRep
                 || location.Country.Contains(query, StringComparison.OrdinalIgnoreCase)
                 || location.Region.Contains(query, StringComparison.OrdinalIgnoreCase)
                 || location.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(location => location.Name)
+            .OrderBy(location => location.Name.Equals(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(location => location.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(location => location.Name)
             .ToArray();
 
         return Task.FromResult<IReadOnlyCollection<Location>>(locations);
