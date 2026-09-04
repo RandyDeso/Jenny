@@ -13,21 +13,13 @@ public sealed class TravelAssistantService(
         var normalizedMessage = message.Trim();
         var loweredMessage = normalizedMessage.ToLowerInvariant();
         var locations = MatchLocations(loweredMessage);
+        var prefersPlaneFreeTravel = HasAnyKeyword(loweredMessage, "plane", "planes", "flight", "flights", "flying", "airfare", "airport");
 
         logger.LogInformation("Handling travel question. Locations detected: {Locations}", string.Join(", ", locations.Select(location => location.Name)));
 
-        if (HasAnyKeyword(loweredMessage, "plane", "planes", "flight", "flights", "airfare", "airport"))
-        {
-            return new ChatResponse(
-                "I’ll keep this plane-free and focus on trains and ferries instead. Tell me your route or destination and I’ll suggest the best ground or water-based option.",
-                "travel-preference",
-                [],
-                ["Plan a route from London to Dublin", "Things to do in Paris", "Best food in Amsterdam"]);
-        }
-
         if (IsRouteIntent(loweredMessage))
         {
-            return BuildRouteResponse(locations);
+            return BuildRouteResponse(locations, prefersPlaneFreeTravel);
         }
 
         if (IsRestaurantIntent(loweredMessage))
@@ -62,6 +54,15 @@ public sealed class TravelAssistantService(
             return BuildDiscoveryResponse(locations);
         }
 
+        if (prefersPlaneFreeTravel)
+        {
+            return new ChatResponse(
+                "Absolutely — I’ll prioritize trains and ferries over flights. Share your route or destination and I’ll build around ground and water connections.",
+                "travel-preference",
+                [],
+                ["Plan a route from London to Dublin", "Things to do in Paris", "Best food in Amsterdam"]);
+        }
+
         return new ChatResponse(
             "Hi, I’m Jenny — your train-and-ferry travel assistant. Ask me for routes, activities, restaurants, accommodation ideas, weather notes, or local tips for places like London, Paris, Amsterdam, Dublin, and Edinburgh.",
             "greeting",
@@ -69,7 +70,7 @@ public sealed class TravelAssistantService(
             ["Plan a route from London to Dublin", "Things to do in Paris", "Where should I eat in Amsterdam?"]);
     }
 
-    private ChatResponse BuildRouteResponse(IReadOnlyList<TravelLocation> locations)
+    private ChatResponse BuildRouteResponse(IReadOnlyList<TravelLocation> locations, bool prefersPlaneFreeTravel)
     {
         if (locations.Count < 2)
         {
@@ -93,8 +94,12 @@ public sealed class TravelAssistantService(
                 ["Things to do there", "Find restaurants", "Suggest hotels"]);
         }
 
+        var preferenceNote = prefersPlaneFreeTravel
+            ? " You mentioned avoiding flights, so this keeps the full trip rail-and-ferry friendly."
+            : string.Empty;
+
         return new ChatResponse(
-            $"{route.Origin} to {route.Destination} works well by {DescribeRouteMode(route)}. This sample plan avoids flights and keeps the journey station-to-station or port-to-port.",
+            $"{route.Origin} to {route.Destination} works well by {DescribeRouteMode(route)}. This sample plan avoids flights and keeps the journey station-to-station or port-to-port.{preferenceNote}",
             "route",
             [new TravelOption($"{route.Origin} → {route.Destination}", route.Summary, route.Legs, route.TravelTime, route.CostEstimate)],
             ["Add destination activities", $"Restaurants in {route.Destination}", $"Where to stay in {route.Destination}"]);

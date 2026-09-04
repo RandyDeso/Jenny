@@ -167,6 +167,13 @@ body {
     margin-top: 1rem;
 }
 
+.composer-help {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #425466;
+    font-size: 0.95rem;
+}
+
 .composer textarea {
     width: 100%;
     resize: vertical;

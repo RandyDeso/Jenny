@@ -32,9 +32,9 @@ app.Use(async (context, next) =>
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-app.MapPost("/api/chat", (ChatRequest request, ITravelAssistantService travelAssistantService, ILogger<Program> logger) =>
+app.MapPost("/api/chat", (ChatRequest? request, ITravelAssistantService travelAssistantService, ILogger<Program> logger) =>
 {
-    if (string.IsNullOrWhiteSpace(request.Message))
+    if (request is null || string.IsNullOrWhiteSpace(request.Message))
     {
         return Results.ValidationProblem(new Dictionary<string, string[]>
         {
