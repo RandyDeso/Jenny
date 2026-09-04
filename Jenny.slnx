@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Jenny.Core/Jenny.Core.csproj" />
+  <Project Path="Jenny.Data/Jenny.Data.csproj" />
+  <Project Path="Jenny.Tests/Jenny.Tests.csproj" />
+  <Project Path="Jenny.Web/Jenny.Web.csproj" />
+</Solution>
