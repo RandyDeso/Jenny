@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jenny Travel Assistant</title>
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <main class="app-shell">
+        <section class="hero">
+            <p class="eyebrow">Plane-free travel planning</p>
+            <h1>Jenny</h1>
+            <p class="hero-copy">A chat-based travel assistant for people who would rather take the train or ferry than fly.</p>
+        </section>
+
+        <section class="chat-panel">
+            <div id="messages" class="messages" aria-live="polite"></div>
+
+            <div id="quickReplies" class="quick-replies" aria-label="Suggested prompts"></div>
+
+            <form id="chatForm" class="composer">
+                <label class="sr-only" for="messageInput">Ask Jenny a travel question</label>
+                <textarea id="messageInput" rows="2" maxlength="400" placeholder="Ask about routes, restaurants, things to do, hotels, or weather..."></textarea>
+                <button type="submit">Send</button>
+            </form>
+        </section>
+
+        <aside class="favorites-panel">
+            <div class="favorites-header">
+                <h2>Saved ideas</h2>
+                <button id="clearFavorites" type="button" class="ghost-button">Clear</button>
+            </div>
+            <div id="favorites" class="favorites-list"></div>
+        </aside>
+    </main>
+
+    <script src="/js/chat.js"></script>
+</body>
+</html>
