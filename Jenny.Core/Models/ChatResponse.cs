@@ -16,6 +16,11 @@ public sealed class ChatResponse
     public string Reply { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets a value indicating whether the user should clarify the request.
+    /// </summary>
+    public bool RequiresClarification { get; set; }
+
+    /// <summary>
     /// Gets or sets the updated conversation.
     /// </summary>
     public Conversation Conversation { get; set; } = new();

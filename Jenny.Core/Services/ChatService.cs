@@ -15,13 +15,15 @@ public sealed class ChatService(
     IRouteService routeService,
     IRestaurantService restaurantService,
     ITravelTipRepository travelTipRepository,
-    IUserService userService) : IChatService
+    IUserService userService,
+    IConversationStateLock conversationStateLock) : IChatService
 {
     /// <inheritdoc />
     public async Task<Conversation> GetHistoryAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         await userService.GetOrCreateAsync(userId, cancellationToken: cancellationToken);
-        return await conversationRepository.GetByUserIdAsync(userId, cancellationToken) ?? new Conversation { UserId = userId };
+        return await conversationStateLock.ExecuteAsync(userId, async () =>
+            await conversationRepository.GetByUserIdAsync(userId, cancellationToken) ?? new Conversation { UserId = userId });
     }
 
     /// <inheritdoc />
@@ -29,43 +31,50 @@ public sealed class ChatService(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         await userService.GetOrCreateAsync(userId, cancellationToken: cancellationToken);
-
-        var conversation = await conversationRepository.GetByUserIdAsync(userId, cancellationToken) ?? new Conversation { UserId = userId };
-        conversation.Messages.Add(new ChatMessage
+        return await conversationStateLock.ExecuteAsync(userId, async () =>
         {
-            Sender = MessageSender.User,
-            Content = message,
-            Type = ChatMessageType.Text,
-            Timestamp = DateTimeOffset.UtcNow
+            var conversation = await conversationRepository.GetByUserIdAsync(userId, cancellationToken) ?? new Conversation { UserId = userId };
+            conversation.Messages.Add(new ChatMessage
+            {
+                Sender = MessageSender.User,
+                Content = message,
+                Type = ChatMessageType.Text,
+                Timestamp = DateTimeOffset.UtcNow
+            });
+
+            var matchedLocations = (await FindLocationsAsync(message, cancellationToken)).ToArray();
+            var intent = DetectIntent(message);
+            var reply = await BuildReplyAsync(intent, message, matchedLocations, conversation, cancellationToken);
+            if (matchedLocations.Length > 0)
+            {
+                conversation.Context["lastLocationId"] = matchedLocations[0].Id.ToString();
+                conversation.Context["lastLocationName"] = matchedLocations[0].Name;
+            }
+
+            conversation.Context["lastIntent"] = intent;
+            conversation.Messages.Add(new ChatMessage
+            {
+                Sender = MessageSender.Assistant,
+                Content = reply.Reply,
+                Type = reply.RequiresClarification ? ChatMessageType.Clarification : ChatMessageType.Recommendation,
+                Timestamp = DateTimeOffset.UtcNow
+            });
+
+            await conversationRepository.SaveAsync(conversation, cancellationToken);
+            reply.Conversation = conversation;
+            return reply;
         });
-
-        var matchedLocations = (await FindLocationsAsync(message, cancellationToken)).ToArray();
-        if (matchedLocations.Length > 0)
-        {
-            conversation.Context["lastLocationId"] = matchedLocations[0].Id.ToString();
-            conversation.Context["lastLocationName"] = matchedLocations[0].Name;
-        }
-
-        var intent = DetectIntent(message);
-        var reply = await BuildReplyAsync(intent, message, matchedLocations, conversation, cancellationToken);
-        conversation.Context["lastIntent"] = intent;
-        conversation.Messages.Add(new ChatMessage
-        {
-            Sender = MessageSender.Assistant,
-            Content = reply.Reply,
-            Type = reply.Intent == "clarification" ? ChatMessageType.Clarification : ChatMessageType.Recommendation,
-            Timestamp = DateTimeOffset.UtcNow
-        });
-
-        await conversationRepository.SaveAsync(conversation, cancellationToken);
-        reply.Conversation = conversation;
-        return reply;
     }
 
     private static string DetectIntent(string message)
     {
         var normalized = message.ToLowerInvariant();
-        if (normalized.Contains("route") || normalized.Contains("travel") || normalized.Contains("get from") || normalized.Contains("from "))
+        if (normalized.Contains("route")
+            || normalized.Contains("travel")
+            || normalized.Contains("get from")
+            || normalized.Contains("get to")
+            || normalized.Contains("to ")
+            || normalized.Contains("from "))
         {
             return "routes";
         }
@@ -92,7 +101,15 @@ public sealed class ChatService(
     {
         var allLocations = await locationService.GetAllAsync(cancellationToken);
         return allLocations
-            .Where(location => message.Contains(location.Name, StringComparison.OrdinalIgnoreCase))
+            .Select(location => new
+            {
+                Location = location,
+                Position = message.IndexOf(location.Name, StringComparison.OrdinalIgnoreCase)
+            })
+            .Where(match => match.Position >= 0)
+            .OrderBy(match => match.Position)
+            .ThenBy(match => match.Location.Name)
+            .Select(match => match.Location)
             .ToArray();
     }
 
@@ -102,7 +119,7 @@ public sealed class ChatService(
         {
             "activities" => await BuildActivityReplyAsync(matchedLocations, conversation, cancellationToken),
             "restaurants" => await BuildRestaurantReplyAsync(matchedLocations, conversation, cancellationToken),
-            "routes" => await BuildRouteReplyAsync(matchedLocations, cancellationToken),
+            "routes" => await BuildRouteReplyAsync(message, matchedLocations, conversation, cancellationToken),
             "tips" => await BuildTipsReplyAsync(matchedLocations, cancellationToken),
             _ => await BuildGeneralReplyAsync(message, matchedLocations, cancellationToken)
         };
@@ -136,26 +153,32 @@ public sealed class ChatService(
         }
 
         var restaurants = await restaurantService.GetByLocationAsync(location.Id, cancellationToken);
+        if (restaurants.Count == 0)
+        {
+            return Clarification("restaurants", $"I don't have restaurant picks for {location.Name} yet. Try another stop like Hong Kong, Bangkok, or Singapore.");
+        }
+
         var builder = new StringBuilder($"Dining ideas in {location.Name}: ");
         builder.AppendJoin("; ", restaurants.Select(restaurant => $"{restaurant.Name} ({restaurant.Cuisine}, {restaurant.PriceRange}, {restaurant.Rating:0.0}/5)"));
         return Success("restaurants", builder.ToString());
     }
 
-    private async Task<ChatResponse> BuildRouteReplyAsync(IReadOnlyCollection<Location> matchedLocations, CancellationToken cancellationToken)
+    private async Task<ChatResponse> BuildRouteReplyAsync(string message, IReadOnlyCollection<Location> matchedLocations, Conversation conversation, CancellationToken cancellationToken)
     {
-        var locations = matchedLocations.ToArray();
-        if (locations.Length < 2)
+        var endpoints = await ResolveRouteEndpointsAsync(message, matchedLocations, conversation, cancellationToken);
+        if (endpoints is null)
         {
             return Clarification("routes", "Please mention both your origin and destination so I can suggest train or ferry routes.");
         }
 
-        var routes = await routeService.GetRoutesAsync(locations[0].Id, locations[1].Id, cancellationToken);
+        var (origin, destination) = endpoints.Value;
+        var routes = await routeService.GetRoutesAsync(origin.Id, destination.Id, cancellationToken);
         if (routes.Count == 0)
         {
-            return Clarification("routes", $"I couldn't find a train or ferry route from {locations[0].Name} to {locations[1].Name} yet.");
+            return Clarification("routes", $"I couldn't find a train or ferry route from {origin.Name} to {destination.Name} yet.");
         }
 
-        var builder = new StringBuilder($"Best routes from {locations[0].Name} to {locations[1].Name}: ");
+        var builder = new StringBuilder($"Best routes from {origin.Name} to {destination.Name}: ");
         builder.AppendJoin("; ", routes.Select(route => $"{route.TransportType} via {string.Join(", ", route.Stops)} in {route.Duration.TotalHours:0.#}h for about ${route.Cost:0}"));
         return Success("routes", builder.ToString());
     }
@@ -195,16 +218,43 @@ public sealed class ChatService(
         return null;
     }
 
+    private async Task<(Location Origin, Location Destination)?> ResolveRouteEndpointsAsync(string message, IReadOnlyCollection<Location> matchedLocations, Conversation conversation, CancellationToken cancellationToken)
+    {
+        var locations = matchedLocations.ToArray();
+        if (locations.Length >= 2)
+        {
+            return (locations[0], locations[1]);
+        }
+
+        if (locations.Length != 1)
+        {
+            return null;
+        }
+
+        var contextualLocation = await ResolveLocationAsync(Array.Empty<Location>(), conversation, cancellationToken);
+        if (contextualLocation is null || contextualLocation.Id == locations[0].Id)
+        {
+            return null;
+        }
+
+        var normalized = message.ToLowerInvariant();
+        return normalized.Contains("from ", StringComparison.Ordinal)
+            ? (locations[0], contextualLocation)
+            : (contextualLocation, locations[0]);
+    }
+
     private static ChatResponse Success(string intent, string reply) => new()
     {
         Intent = intent,
-        Reply = reply
+        Reply = reply,
+        RequiresClarification = false
     };
 
     private static ChatResponse Clarification(string intent, string reply) => new()
     {
-        Intent = "clarification",
+        Intent = intent,
         Reply = reply,
+        RequiresClarification = true,
         Conversation = new Conversation()
     };
 }

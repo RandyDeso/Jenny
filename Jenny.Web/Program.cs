@@ -5,6 +5,7 @@ using Jenny.Web.Middleware;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+var configuredOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
@@ -12,7 +13,17 @@ builder.Logging.AddJsonConsole();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Default", policy =>
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+    {
+        if (configuredOrigins.Length > 0)
+        {
+            policy.WithOrigins(configuredOrigins).AllowAnyHeader().AllowAnyMethod();
+            return;
+        }
+
+        policy.WithOrigins("http://localhost:3000", "https://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
 });
 
 builder.Services

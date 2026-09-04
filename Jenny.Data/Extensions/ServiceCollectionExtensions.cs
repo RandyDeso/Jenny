@@ -1,6 +1,7 @@
 using Jenny.Core.Abstractions;
 using Jenny.Core.Services;
 using Jenny.Core.Services.Interfaces;
+using Jenny.Data.Infrastructure;
 using Jenny.Data.Repositories;
 using Jenny.Data.Seed;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddJennyBackend(this IServiceCollection services)
     {
         services.AddSingleton(_ => MockTravelDataStore.CreateSeeded());
+        services.AddSingleton<KeyedStateLock>();
+        services.AddSingleton<IUserStateLock, UserStateLock>();
+        services.AddSingleton<IConversationStateLock, ConversationStateLock>();
 
         services.AddSingleton<ILocationRepository, LocationRepository>();
         services.AddSingleton<IActivityRepository, ActivityRepository>();
