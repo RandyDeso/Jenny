@@ -12,7 +12,7 @@ Jenny is an ASP.NET Core travel assistant chatbot focused on **train and ferry t
 ## Run locally
 
 ```bash
-dotnet run --project /home/runner/work/Jenny/Jenny/Jenny/Jenny.csproj
+dotnet run --project Jenny/Jenny.csproj
 ```
 
 Then open the local URL shown in the console.
@@ -20,5 +20,5 @@ Then open the local URL shown in the console.
 ## Test
 
 ```bash
-dotnet test /home/runner/work/Jenny/Jenny/Jenny.slnx
+dotnet test Jenny.slnx
 ```

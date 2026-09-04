@@ -41,6 +41,16 @@ public sealed class TravelAssistantServiceTests
     }
 
     [Fact]
+    public void DestinationTravelTips_StayInDiscoveryFlow()
+    {
+        var response = service.GetResponse("Travel tips in Paris");
+
+        Assert.Equal("discovery", response.Intent);
+        Assert.Contains("Paris", response.Reply, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(3, response.Options.Count);
+    }
+
+    [Fact]
     public void RouteQuestionWithoutBothLocations_AsksForClarification()
     {
         var response = service.GetResponse("Can you plan a train route?");

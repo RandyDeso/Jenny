@@ -155,7 +155,8 @@ public sealed class TravelAssistantService(
             .ToList();
 
     private static bool IsRouteIntent(string loweredMessage) =>
-        HasAnyKeyword(loweredMessage, "route", "travel", "journey", "get to", "go to", "from", "connection", "connections", "train", "ferry");
+        HasAnyKeyword(loweredMessage, "route", "journey", "get to", "go to", "connection", "connections", "train", "ferry", "rail")
+        || (loweredMessage.Contains(" from ", StringComparison.OrdinalIgnoreCase) && loweredMessage.Contains(" to ", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsRestaurantIntent(string loweredMessage) =>
         HasAnyKeyword(loweredMessage, "restaurant", "restaurants", "food", "eat", "dining", "dinner", "lunch", "breakfast");
