@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json.Serialization;
 using Jenny.Data.Extensions;
 using Jenny.Web.Middleware;
@@ -61,13 +60,14 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("Default");
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/", () => Results.Ok(new
+app.MapGet("/api/health", () => Results.Ok(new
 {
     Name = "Jenny Travel Assistant API",
-    Version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0",
     Status = "Ready"
 }));
 
