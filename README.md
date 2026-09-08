@@ -1,14 +1,26 @@
 # Jenny
-A .NET/C# chatbot travel assistant for activity recommendations, route planning, and restaurant suggestions
+
+A .NET/C# chatbot travel assistant for activity recommendations, route planning, and restaurant suggestions.
+
+Jenny is structured as a .NET 8 solution with separate Web, Core, Data, and Tests projects. The current MVP provides a browser-based chatbot UI plus travel APIs for locations, activities, routes, restaurants, chat history, and favorites using seeded in-memory data.
 
 ## Run locally
 
 ```bash
 cd /home/runner/work/Jenny/Jenny/Jenny.Web
-dotnet run
+mkdir -p /tmp/.dotnet/shm
+DOTNET_CLI_HOME=/tmp dotnet run
 ```
 
-Open `http://localhost:5099/`.
+Then open the local URL shown in the console.
+
+## Test
+
+```bash
+cd /home/runner/work/Jenny/Jenny
+mkdir -p /tmp/.dotnet/shm
+DOTNET_CLI_HOME=/tmp dotnet test Jenny.slnx
+```
 
 ## Deploy to Fly.io
 
@@ -16,16 +28,12 @@ Open `http://localhost:5099/`.
    ```bash
    fly auth login
    ```
-2. Update `/home/runner/work/Jenny/Jenny/fly.toml` and replace `your-jenny-app` with a globally unique Fly app name.
-3. From `/home/runner/work/Jenny/Jenny`, create the app if needed:
-   ```bash
-   fly apps create your-jenny-app
-   ```
-4. Deploy:
+2. Update `/home/runner/work/Jenny/Jenny/fly.toml` and replace `your-jenny-app` with your Fly app name.
+3. From `/home/runner/work/Jenny/Jenny`, deploy:
    ```bash
    fly deploy
    ```
-5. Open the public site:
+4. Open the public site:
    ```bash
    fly open
    ```
