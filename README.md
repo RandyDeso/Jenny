@@ -1,18 +1,15 @@
 # Jenny
 
-Jenny is an ASP.NET Core travel assistant chatbot focused on **train and ferry travel**. It offers:
+A .NET/C# chatbot travel assistant for activity recommendations, route planning, and restaurant suggestions.
 
-- Activity recommendations by destination
-- Train and ferry route suggestions
-- Restaurant and dining ideas
-- Accommodation notes
-- Basic weather guidance
-- A responsive web chat interface that works well on mobile browsers
+Jenny is structured as a .NET 8 solution with separate Web, Core, Data, and Tests projects. The current MVP provides a browser-based chatbot UI plus travel APIs for locations, activities, routes, restaurants, chat history, and favorites using seeded in-memory data.
 
 ## Run locally
 
 ```bash
-dotnet run --project Jenny/Jenny.csproj
+cd /home/runner/work/Jenny/Jenny/Jenny.Web
+mkdir -p /tmp/.dotnet/shm
+DOTNET_CLI_HOME=/tmp dotnet run
 ```
 
 Then open the local URL shown in the console.
@@ -20,5 +17,29 @@ Then open the local URL shown in the console.
 ## Test
 
 ```bash
-dotnet test Jenny.slnx
+cd /home/runner/work/Jenny/Jenny
+mkdir -p /tmp/.dotnet/shm
+DOTNET_CLI_HOME=/tmp dotnet test Jenny.slnx
 ```
+
+## Deploy to Fly.io
+
+1. Install and authenticate Fly CLI on your machine:
+   ```bash
+   fly auth login
+   ```
+2. Update `/home/runner/work/Jenny/Jenny/fly.toml` and replace `your-jenny-app` with your Fly app name.
+3. From `/home/runner/work/Jenny/Jenny`, deploy:
+   ```bash
+   fly deploy
+   ```
+4. Open the public site:
+   ```bash
+   fly open
+   ```
+
+Jenny is configured for Fly to:
+- build from the repository `Dockerfile`
+- serve the ASP.NET app on port `8080`
+- use `/api/health` for health checks
+- allow machines to stop when idle to help minimize cost

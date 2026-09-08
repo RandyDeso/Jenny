@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jenny Travel Assistant</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+    <main class="app-shell">
+        <section class="hero">
+            <p class="eyebrow">Jenny Travel Assistant</p>
+            <h1>Plan train and ferry trips with a chatbot.</h1>
+            <p class="hero-copy">
+                Ask Jenny about routes, activities, restaurants, and travel tips across Asia.
+            </p>
+            <div class="quick-actions" id="quick-actions">
+                <button type="button" data-prompt="What activities should I do in Hong Kong?">Hong Kong activities</button>
+                <button type="button" data-prompt="How do I get from Singapore to Bangkok?">Singapore to Bangkok</button>
+                <button type="button" data-prompt="Where should I eat in Macau?">Macau restaurants</button>
+                <button type="button" data-prompt="Give me travel tips for Phuket">Phuket tips</button>
+            </div>
+        </section>
+
+        <section class="chat-panel" aria-label="Travel assistant chat">
+            <header class="chat-header">
+                <div>
+                    <h2>Chat with Jenny</h2>
+                    <p id="session-label">Session ready</p>
+                </div>
+                <button id="reset-chat" class="secondary-button" type="button">New chat</button>
+            </header>
+
+            <div id="chat-messages" class="chat-messages" aria-live="polite">
+                <article class="message assistant">
+                    <p class="message-meta">Jenny</p>
+                    <p>Hello! Ask me about train and ferry travel, activities, restaurants, or local tips.</p>
+                </article>
+            </div>
+
+            <form id="chat-form" class="composer">
+                <label class="sr-only" for="message-input">Message</label>
+                <textarea id="message-input" name="message" rows="3" maxlength="500" placeholder="Try: How do I get from Hong Kong to Macau?" required></textarea>
+                <div class="composer-actions">
+                    <span id="status-text" class="status-text">Ready</span>
+                    <button type="submit">Send</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+</body>
+</html>
