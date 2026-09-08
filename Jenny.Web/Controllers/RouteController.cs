@@ -17,6 +17,14 @@ public sealed class RouteController(IRouteService routeService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRoutes([FromQuery] Guid from, [FromQuery] Guid to, CancellationToken cancellationToken)
     {
+        if (from == Guid.Empty || to == Guid.Empty)
+        {
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["route"] = ["Both non-empty from and to location identifiers are required."]
+            }));
+        }
+
         var routes = await routeService.GetRoutesAsync(from, to, cancellationToken);
         return Ok(routes);
     }

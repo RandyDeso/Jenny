@@ -19,6 +19,14 @@ public sealed class ChatController(IChatService chatService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SendMessage([FromBody] ChatRequest request, CancellationToken cancellationToken)
     {
+        if (request.UserId == Guid.Empty)
+        {
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["userId"] = ["A non-empty userId is required."]
+            }));
+        }
+
         var response = await chatService.ProcessMessageAsync(request.UserId, request.Message, cancellationToken);
         return Ok(response);
     }
@@ -30,6 +38,14 @@ public sealed class ChatController(IChatService chatService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetHistory([FromQuery] Guid userId, CancellationToken cancellationToken)
     {
+        if (userId == Guid.Empty)
+        {
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["userId"] = ["A non-empty userId is required."]
+            }));
+        }
+
         var history = await chatService.GetHistoryAsync(userId, cancellationToken);
         return Ok(history);
     }

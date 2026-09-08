@@ -19,6 +19,14 @@ public sealed class FavoritesController(IUserService userService) : ControllerBa
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Add([FromBody] FavoriteRequest request, CancellationToken cancellationToken)
     {
+        if (request.UserId == Guid.Empty || request.EntityId == Guid.Empty)
+        {
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["favorite"] = ["Non-empty userId and entityId values are required."]
+            }));
+        }
+
         var favorite = await userService.AddFavoriteAsync(request.UserId, new UserFavorite
         {
             EntityId = request.EntityId,
@@ -36,6 +44,14 @@ public sealed class FavoritesController(IUserService userService) : ControllerBa
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] Guid userId, CancellationToken cancellationToken)
     {
+        if (userId == Guid.Empty)
+        {
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["userId"] = ["A non-empty userId is required."]
+            }));
+        }
+
         var favorites = await userService.GetFavoritesAsync(userId, cancellationToken);
         return Ok(favorites);
     }

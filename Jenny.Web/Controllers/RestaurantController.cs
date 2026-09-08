@@ -17,6 +17,14 @@ public sealed class RestaurantController(IRestaurantService restaurantService) :
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByLocation([FromQuery] Guid location, CancellationToken cancellationToken)
     {
+        if (location == Guid.Empty)
+        {
+            return BadRequest(new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["location"] = ["A non-empty location identifier is required."]
+            }));
+        }
+
         var restaurants = await restaurantService.GetByLocationAsync(location, cancellationToken);
         return Ok(restaurants);
     }

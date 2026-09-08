@@ -69,6 +69,18 @@ public sealed class ChatServiceTests
     }
 
     [Fact]
+    public async Task ProcessMessageAsync_DoesNotTreatRestaurantQuestionAsRoute()
+    {
+        var store = MockTravelDataStore.CreateSeeded();
+        var chatService = CreateService(store);
+
+        var response = await chatService.ProcessMessageAsync(Guid.NewGuid(), "Where to eat in Singapore?");
+
+        Assert.Equal("restaurants", response.Intent);
+        Assert.Contains("Dining ideas in Singapore", response.Reply);
+    }
+
+    [Fact]
     public async Task ProcessMessageAsync_UsesStoredLocationContext_ForRestaurantFollowUp()
     {
         var store = MockTravelDataStore.CreateSeeded();

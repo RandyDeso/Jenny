@@ -73,7 +73,6 @@ public sealed class ChatService(
             || normalized.Contains("travel")
             || normalized.Contains("get from")
             || normalized.Contains("get to")
-            || normalized.Contains("to ")
             || normalized.Contains("from "))
         {
             return "routes";
